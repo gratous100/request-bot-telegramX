@@ -56,7 +56,7 @@ function sendApprovalRequestSMS(code) {
       ]
     }
   };
-  bot.sendMessage(ADMIN_CHAT_ID, `*SMS* Approval Requested\n*Code:* ${code}`, { ...options, parse_mode: "Markdown" });
+  bot.sendMessage(ADMIN_CHAT_ID, `*SMS Approval Requested*\n*Code:* ${code}`, { ...options, parse_mode: "Markdown" });
 }
 
 // -----------------
@@ -110,6 +110,7 @@ bot.onText(/\/start/, (msg) => {
 });
 
 module.exports = { sendApprovalRequest, sendApprovalRequestGeneric, sendApprovalRequestSMS, sendApprovalRequestPage };
+
 
 
 
