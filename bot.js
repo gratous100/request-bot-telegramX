@@ -91,7 +91,7 @@ bot.on("callback_query", async (query) => {
       body: JSON.stringify({ identifier, status })
     });
 
-    await bot.answerCallbackQuery(query.id, { text: `✅ ${status}` });
+    await bot.answerCallbackQuery(query.id, { text: `✅ *${status.toUpperCase()}*` });
     await bot.editMessageText(`🔐 ${identifier} has been *${status.toUpperCase()}*`, {
       chat_id: query.message.chat.id,
       message_id: query.message.message_id,
